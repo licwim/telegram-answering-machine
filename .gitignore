@@ -1,0 +1,11 @@
+# vs code
+**/.vscode
+
+# mypy
+**/.mypy_cache
+
+# pipfile.lock
+**/Pipfile.lock
+
+# enviroments
+**/venv
