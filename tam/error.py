@@ -18,3 +18,21 @@ class LoginFailedError(BaseTamException):
 
     def __init__(self):
         super().__init__("Login isn't success")
+
+
+class DisconnectFailedError(BaseTamException):
+
+    def __init__(self):
+        super().__init__("Disconnect error")
+
+
+class EmptyChatError(BaseTamException):
+
+    def __init__(self):
+        super().__init__("Empty chat")
+
+
+class EmptyMessageError(BaseTamException):
+
+    def __init__(self):
+        super().__init__("Empty message")

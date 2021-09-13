@@ -1,11 +1,19 @@
 # vs code
 **/.vscode
+**/.idea
 
-# mypy
+# cache
 **/.mypy_cache
+**/__pycache__
 
 # pipfile.lock
 **/Pipfile.lock
 
 # enviroments
 **/venv
+
+# configs
+config.json
+
+# sessions
+*.session

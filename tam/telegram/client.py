@@ -1,93 +1,133 @@
-# !/usr/bin/env python
-
+from typing import Union
+from time import sleep
 from telethon import TelegramClient
-from telethon.tl.types import User
-from tam.config import Config
+from telethon.tl.types import User, Chat
+from telethon import errors, events
+
 from tam.error import (
+    EmptyChatError,
+    EmptyMessageError,
     UserIsAuthorizedException,
-    LoginFailedError
+    LoginFailedError,
+    DisconnectFailedError
 )
+from .helpers import ChatHelper
 
 
-class BaseTelegramClient():
+class TelegramApiClient:
 
     MAX_RELOGIN_COUNT = 3
+    DISCONNECT_TIMEOUT = 15
 
-    def __init__(self, name):
+    def __init__(self, name: str, api_id: int, api_hash: str):
         self.name = name
-        self.client = TelegramClient(name, Config.API_ID, Config.API_HASH)
-        self.client.connect()
+        self._client = TelegramClient(name, api_id, api_hash)
+        self.loop = self._client.loop
+        self._relogin_count = 0
+        self._current_user = None
 
-    def sign_in(self, phone=None, code=None, password=None):
-        if self.client.is_user_authorized():
+    async def sign_in(
+            self,
+            phone: str = None,
+            code: Union[int, str] = None,
+            password: str = None
+    ):
+        if await self._client.is_user_authorized():
             raise UserIsAuthorizedException()
-        if phone:
-            self.client.sign_in(phone=phone)
-        if code:
-            self.client.sign_in(code=code)
-        if password:
-            self.client.sign_in(password=password)
-        if not self.client.is_user_authorized():
-            if hasattr(self, 'relogin_count'):
-                if self.relogin_count > self.MAX_RELOGIN_COUNT:
-                    raise LoginFailedError()
-                else:
-                    self.relogin_count += 1
+
+        if not phone:
+            phone = input("Phone: ")
+        await self._client.sign_in(phone=phone, code=code, password=password)
+
+        if await self._client.is_user_authorized():
+            return
+
+        if not code:
+            code = input("Code: ")
+        await self._client.sign_in(code=code)
+
+        if not password:
+            password = input("Password: ")
+        await self._client.sign_in(password=password)
+
+        if not await self._client.is_user_authorized():
+            if self._relogin_count > self.MAX_RELOGIN_COUNT:
+                raise LoginFailedError()
             else:
-                self.relogin_count = 0
-            self.sign_in(phone, code, password)
+                self._relogin_count += 1
+            await self.sign_in(phone, code, password)
 
-"""
-    def start(self):
-        self.get_info()
-        self.client.start()
+    async def start(self):
+        await self._client.connect()
+        await self.get_info()
+        await self._client.start()
+        print("Telegram Client is connected")
 
-    def exit(self):
+    async def exit(self, logout: bool = False):
         try:
-            if not self.save_user:
-                self.client.log_out()
-            self.client.disconnect()
-            timeout = 15
-            while timeout and self.client.is_connected():
-                timeout -= 1
+            if logout:
+                await self._client.log_out()
+            await self._client.disconnect()
+            for _ in range(self.MAX_RELOGIN_COUNT):
+                if not self._client.is_connected():
+                    break
                 sleep(1)
-            if not timeout:
-                msg_boxes().msgDisconnectError.exec()
             else:
-                del self.client
+                raise DisconnectFailedError()
         except ConnectionError:
-            print("Connection error.")
+            print("Connection error")
 
-    def get_info(self) -> User:
-        self.user = self.client.get_me()
-        return (self.user)
+    async def get_info(self) -> User:
+        self._current_user = await self._client.get_me()
+        # print(self._current_user.username)
+        return self._current_user
 
-    def send_message(self, username, message):
-        if not (username and message):
-            return (1)
+    async def send_message(self, chat: ChatHelper, message: str):
         message = message.rstrip('\t \n')
-        if (len(message) > 20):
-            return (1)
-        try:
-            user = self.client.get_entity(username)
-            self.client.send_message(user, message)
-        except errors.PeerFloodError:
-            print (f"{username}: PeerFloodError")
-            return (1)
-        except errors.UsernameInvalidError:
-            print (f"{username}: UsernameInvalidError")
-            return (1)
-        except ValueError:
-            print (f"{username}: ValueError")
-            return (1)
-        return (0)
+        if not chat:
+            raise EmptyChatError
+        if not message:
+            raise EmptyMessageError
 
-    def check_username(self, username):
         try:
-            self.client.get_entity(username)
-        except errors.UsernameInvalidError:
-            return (1)
-        except ValueError:
-            return (2)
-        return (0)
-"""
+            return await self._client.send_message(chat.base, message)
+        except errors.PeerFloodError as e:
+            print(f"{chat.name}: PeerFloodError")
+            raise e
+        except errors.UsernameInvalidError as e:
+            print(f"{chat.name}: UsernameInvalidError")
+            raise e
+        except ValueError as e:
+            print(f"{chat.name}: ValueError")
+            raise e
+
+    async def check_username(self, username: str) -> bool:
+        result = True
+        try:
+            await self._client.get_entity(username)
+        except errors.UsernameInvalidError as e:
+            print(f"{username}: UsernameInvalidError")
+            result = False
+        except ValueError as e:
+            print(f"{username}: ValueError")
+            result = False
+        return result
+
+    async def get_chat(self, chat_uid: Union[int, str]) -> Union[ChatHelper, None]:
+        chat = await self._client.get_entity(chat_uid)
+
+        if isinstance(chat, Chat) or isinstance(chat, User):
+            return ChatHelper(chat)
+        else:
+            return None
+
+    async def get_all_chats(self):
+        dialogs = self._client.get_dialogs()
+        for dialog in dialogs:
+            print(dialog)
+
+    def add_messages_handler(self, handler: callable, *args, **kwargs):
+        self._client.add_event_handler(
+            handler,
+            events.NewMessage(*args, **kwargs)
+        )

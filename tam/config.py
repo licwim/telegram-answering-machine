@@ -1,9 +1,17 @@
 # !/usr/bin/env python
 
-from tam.telegram.client import BaseTelegramClient
-
 
 class Config:
-    USERNAME = "username"
-    API_ID = "#######"
-    API_HASH = "################################"
+    CONFIG_FILE = 'config.json'
+
+    username = str()
+    api_id = int()
+    api_hash = str()
+    answers = dict()
+
+    REQUIRED_ATTRIBUTES = [
+        'username',
+        'api_id',
+        'api_hash',
+        'answers',
+    ]
