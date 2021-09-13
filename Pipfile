@@ -7,7 +7,7 @@ verify_ssl = true
 pycodestyle = "*"
 
 [packages]
-telethon = "<=1.21.1"
+telethon = "==1.21.1"
 
 [requires]
 python_version = "3.7"
