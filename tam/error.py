@@ -26,10 +26,10 @@ class DisconnectFailedError(BaseTamException):
         super().__init__("Disconnect error")
 
 
-class EmptyChatError(BaseTamException):
+class EmptyDialogError(BaseTamException):
 
     def __init__(self):
-        super().__init__("Empty chat")
+        super().__init__("Empty dialog")
 
 
 class EmptyMessageError(BaseTamException):

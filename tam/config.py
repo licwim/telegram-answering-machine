@@ -7,11 +7,11 @@ class Config:
     username = str()
     api_id = int()
     api_hash = str()
-    answers = dict()
+    aq_map = dict()
 
     REQUIRED_ATTRIBUTES = [
         'username',
         'api_id',
         'api_hash',
-        'answers',
+        'aq_map',
     ]
