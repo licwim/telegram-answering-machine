@@ -3,8 +3,9 @@
 import re
 from typing import Union
 from telethon.tl.functions.messages import GetStickerSetRequest
-from telethon.tl.types import InputStickerSetID
+from telethon.tl.types import Dialog, InputStickerSetID
 
+from tam.error import ChatsCollectionError
 from tam.telegram.client import TelegramApiClient
 
 
@@ -103,3 +104,77 @@ class AQ:
             answer = self.answer_types[data['type']](data, self._client)
 
         return answer
+
+
+class AQCollection(list):
+
+    def __init__(self, client: TelegramApiClient, aq_list: list):
+        super().__init__()
+        for aq in aq_list:
+            if isinstance(aq, dict):
+                aq = AQ(client, data=aq)
+            if isinstance(aq, AQ):
+                self.append(aq)
+
+
+class Chat:
+
+    def __init__(self, client: TelegramApiClient, chat_uid: Union[str, int], dialog: Dialog, aq_collection: AQCollection):
+        self._client = client
+        self.chat_uid = chat_uid
+        self.dialog = dialog
+        self.aq_collection = aq_collection
+
+    def __str__(self) -> str:
+        return self.dialog.name
+
+
+class ChatsCollection(list):
+
+    def __init__(self, client: TelegramApiClient):
+        super().__init__()
+        self._client = client
+
+    def get_by_uid(self, uid) -> Union[Chat, None]:
+        dialog = self._client.get_dialog(uid)
+        if dialog:
+            return self.get_by_dialog_id(dialog.id)
+        return None
+
+    def get_by_entity_id(self, id: int) -> Union[Chat, None]:
+        dialog = self._client.get_dialog(id, 'entity')
+        if dialog:
+            return self.get_by_dialog_id(dialog.id)
+        return None
+
+    def get_by_dialog_id(self, id: int) -> Union[Chat, None]:
+        for chat in self:
+            if chat.dialog.id == id:
+                return chat
+        return None
+
+    def fill(self, data: dict):
+        errors = []
+
+        for uid, aq_list in data.items():
+            if uid.isnumeric():
+                uid = int(uid)
+            dialog = self._client.get_dialog(uid)
+            aq_collection = AQCollection(self._client, aq_list)
+
+            if not self.add(uid, dialog, aq_collection):
+                errors.append(ChatsCollectionError("Chat was not added", None, uid, dialog, aq_collection))
+
+        return errors
+
+    def add(self, uid, dialog: Dialog, aq_collection: AQCollection) -> bool:
+        if uid and dialog and aq_collection:
+            self.append(Chat(self._client, uid, dialog, aq_collection))
+            return True
+        return False
+
+    def get_all_names(self) -> list:
+        names = []
+        for chat in self:
+            names.append(chat.dialog.name)
+        return names

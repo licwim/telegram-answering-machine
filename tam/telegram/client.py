@@ -59,7 +59,10 @@ class TelegramApiClient:
                 self._relogin_count += 1
             await self.sign_in(phone, code, password)
 
-    async def start(self):
+    def start(self):
+        self._client.run_until_disconnected()
+
+    async def connect(self):
         await self._client.connect()
         await self.get_info()
         await self._client.start()
@@ -119,7 +122,7 @@ class TelegramApiClient:
             result = False
         return result
 
-    async def get_dialog(self, uid: Union[str, int], type: str = None) -> Union[Dialog, None]:
+    def get_dialog(self, uid: Union[str, int], type: str = None) -> Union[Dialog, None]:
         if type:
             res_dialog = self._get_dialog_with_type(uid, type)
         else:

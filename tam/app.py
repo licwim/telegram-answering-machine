@@ -1,30 +1,28 @@
 # !/usr/bin/env python
 
+from .chats import ChatsCollection
 from .config import Config
 from .telegram.client import TelegramApiClient
-from .handler import ChatHandler
+from .handlers import ChatHandlerController
 
 
 class TelegramAnsweringMachine:
     def __init__(self):
         self.client = TelegramApiClient(Config.username, Config.api_id, Config.api_hash)
         self.loop = self.client.loop
-        self.handlers = {}
+        self.handler_contoller = ChatHandlerController(self.client)
+        self.chats_collection = ChatsCollection(self.client)
 
-    def create_chat_handlers(self, aq_map: dict):
-        for chat_uid, aq in aq_map.items():
-            if chat_uid.isnumeric():
-                chat_uid = int(chat_uid)
-            chat = self.loop.run_until_complete(self.client.get_dialog(chat_uid))
-            handler = ChatHandler(self.client, chat, aq)
-            handler.join()
-            self.handlers[chat_uid] = handler
+    def create_chat_handlers(self):
+        for handler_type in self.handler_contoller.HANDLER_TYPES:
+            self.handler_contoller.create_handler(handler_type, self.chats_collection)
 
     def run(self):
-        self.loop.run_until_complete(self.client.start())
-        self.create_chat_handlers(Config.aq_map)
+        self.loop.run_until_complete(self.client.connect())
+        self.chats_collection.fill(Config.aq_map)
+        self.create_chat_handlers()
         try:
-            self.loop.run_forever()
+            self.client.start()
         except KeyboardInterrupt:
             self.loop.run_until_complete(self.client.exit())
             if not self.loop.is_closed():
