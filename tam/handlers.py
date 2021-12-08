@@ -43,10 +43,12 @@ class ChatHandler(Handler):
             print(f"New message from {dialog.name}: {message.text}\n")
 
             for aq in self.current_chat.aq_collection:
+                answer = await aq.get_answer_message()
+                if not answer:
+                    continue
                 for question in aq.questions:
                     if question.match(message.text):
                         await asyncio.sleep(aq.answer.delay)
-                        answer = await aq.answer.get_message()
                         await self._client.send_message(dialog, answer, message)
                         print(f"Reply to {dialog.name}: {answer}\n")
                         break
@@ -55,7 +57,7 @@ class ChatHandler(Handler):
             print(ex.args)
 
 
-class ChatHandlerController:
+class ChatsController:
 
     HANDLER_TYPES = [
         ChatHandler,

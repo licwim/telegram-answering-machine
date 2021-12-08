@@ -182,3 +182,11 @@ class TelegramApiClient:
 
     async def request(self, data):
         return await self._client(data)
+
+    async def get_dialog_members(self, dialog: Dialog) -> list:
+        members = []
+
+        for member in await self._client.get_participants(dialog):
+            members.append(member)
+
+        return members
