@@ -8,6 +8,7 @@ pycodestyle = "*"
 
 [packages]
 telethon = "==1.21.1"
+keyboard = "==0.13.5"
 
 [requires]
 python_version = "3.7"

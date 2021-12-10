@@ -6,6 +6,7 @@ from .chats import ChatsCollection
 from .config import Config
 from .telegram.client import TelegramApiClient
 from .handlers import ChatsController
+from .utils.inputlistener import InputListener
 
 
 class TelegramAnsweringMachine:
@@ -17,6 +18,7 @@ class TelegramAnsweringMachine:
         self.loop = self.client.loop
         self.chats_contoller = ChatsController(self.client)
         self.chats_collection = ChatsCollection(self.client)
+        self.input_listener = InputListener()
 
     def _create_chat_handlers(self):
         for handler_type in self.chats_contoller.HANDLER_TYPES:
@@ -26,6 +28,7 @@ class TelegramAnsweringMachine:
         self.loop.run_until_complete(self.client.connect())
         self.chats_collection.fill(Config.aq_map)
         self._create_chat_handlers()
+        self.input_listener.add_event('exit', self.stop)
 
         try:
             self.client.start()

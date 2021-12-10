@@ -1,6 +1,6 @@
 # !/usr/bin/env python
 
-from typing import Union, Any
+from typing import Union, Any, get_args
 from time import sleep
 from telethon import TelegramClient
 from telethon.tl.types import Channel, Dialog, Message, User, Chat
@@ -139,7 +139,7 @@ class TelegramApiClient:
             elif isinstance(uid, str):
                 for dialog in self.dialogs.values():
                     if (isinstance(dialog.entity, User) and uid == dialog.entity.username) or \
-                        (isinstance(dialog.entity, Union[Chat, Channel]) and uid == dialog.entity.title):
+                            (isinstance(dialog.entity, get_args(Union[Chat, Channel])) and uid == dialog.entity.title):
                         res_dialog = dialog
                         break
         elif type == 'dialog':
