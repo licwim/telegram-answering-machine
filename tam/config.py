@@ -1,8 +1,9 @@
 # !/usr/bin/env python
+import os
 
 
 class Config:
-    CONFIG_FILE = 'config.json'
+    CONFIG_FILE = os.getenv('TAM_CONFIG_FILE')
 
     username = str()
     api_id = int()
